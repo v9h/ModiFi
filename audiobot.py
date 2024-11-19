@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import subprocess
+import random
 
 TOKEN = 'YOUR_BOT_TOKEN'
 
@@ -144,6 +145,70 @@ async def freqfilter(ctx, filter_type: str): # Low-pass or high-pass filter
     filter_option = 'lowpass=f=3000' if filter_type.lower() == 'low-pass' else 'highpass=f=3000'
     command = [
         'ffmpeg', '-i', attachment.filename, '-filter:a', filter_option, output_filename
+    ]
+    subprocess.run(command)
+
+    await ctx.send(file=discord.File(output_filename))
+
+    os.remove(attachment.filename)
+    os.remove(output_filename)
+
+@bot.command()
+async def metamask(ctx): # Randomizes the metadata of the audio file
+    if not ctx.message.attachments:
+        await ctx.send("Please attach an audio file.")
+        return
+
+    attachment = ctx.message.attachments[0]
+    if not attachment.filename.endswith(('.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg')):
+        await ctx.send("Please attach a valid audio file.")
+        return
+
+    await attachment.save(attachment.filename)
+
+    duration = get_audio_duration(attachment.filename)
+    if duration > 180:
+        await ctx.send("The audio file is longer than 180 seconds and cannot be processed.")
+        os.remove(attachment.filename)
+        return
+
+    output_filename = f"metamask_{attachment.filename}"
+    random_artist = f"Artist_{random.randint(1000, 9999)}"
+    random_album = f"Album_{random.randint(1000, 9999)}"
+    random_title = f"Title_{random.randint(1000, 9999)}"
+    random_genre = f"Genre_{random.randint(1000, 9999)}"
+    command = [
+        'ffmpeg', '-i', attachment.filename, '-metadata', f'artist={random_artist}', '-metadata', f'album={random_album}', '-metadata', f'title={random_title}', '-metadata', f'genre={random_genre}', output_filename
+    ]
+    subprocess.run(command)
+
+    await ctx.send(file=discord.File(output_filename))
+
+    os.remove(attachment.filename)
+    os.remove(output_filename)
+
+@bot.command()
+async def dynamiceq(ctx): # Applies dynamic equalization to the audio file
+    if not ctx.message.attachments:
+        await ctx.send("Please attach an audio file.")
+        return
+
+    attachment = ctx.message.attachments[0]
+    if not attachment.filename.endswith(('.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg')):
+        await ctx.send("Please attach a valid audio file.")
+        return
+
+    await attachment.save(attachment.filename)
+
+    duration = get_audio_duration(attachment.filename)
+    if duration > 180:
+        await ctx.send("The audio file is longer than 180 seconds and cannot be processed.")
+        os.remove(attachment.filename)
+        return
+
+    output_filename = f"dynamiceq_{attachment.filename}"
+    command = [
+        'ffmpeg', '-i', attachment.filename, '-af', 'bandpass=f=1000:w=500,compand=attacks=1:decays=100:points=-80/-80|-20/-10|0/-3:soft-knee=6', output_filename
     ]
     subprocess.run(command)
 
