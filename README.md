@@ -1,4 +1,4 @@
-# Modifi (modify, fi, haha get it?) Audio bot
+# ModiFi (modify, fi, haha get it?) Audio bot
 
 Made in few minutes using Python and FFMPEG.
 
