@@ -70,14 +70,80 @@ async def convert(ctx):
     await attachment.save(attachment.filename)
 
     duration = get_audio_duration(attachment.filename)
-    if duration > 75:
-        await ctx.send("The audio file is longer than 75 seconds and cannot be processed.")
+    if duration > 180:
+        await ctx.send("The audio file is longer than 180 seconds and cannot be processed.")
         os.remove(attachment.filename)
         return
 
     output_filename = f"{os.path.splitext(attachment.filename)[0]}.ogg"
     command = [
         'ffmpeg', '-i', attachment.filename, '-c:a', 'libvorbis', '-q:a', '5', output_filename
+    ]
+    subprocess.run(command)
+
+    await ctx.send(file=discord.File(output_filename))
+
+    os.remove(attachment.filename)
+    os.remove(output_filename)
+
+@bot.command()
+async def noisebypass(ctx): # Adds noise to the audio file, hopefully bypassing certain sound-checks
+    if not ctx.message.attachments:
+        await ctx.send("Please attach an audio file.")
+        return
+
+    attachment = ctx.message.attachments[0]
+    if not attachment.filename.endswith(('.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg')):
+        await ctx.send("Please attach a valid audio file.")
+        return
+
+    await attachment.save(attachment.filename)
+
+    duration = get_audio_duration(attachment.filename)
+    if duration > 180:
+        await ctx.send("The audio file is longer than 180 seconds and cannot be processed.")
+        os.remove(attachment.filename)
+        return
+
+    output_filename = f"noisebypass_{attachment.filename}"
+    command = [
+        'ffmpeg', '-i', attachment.filename, '-filter_complex', 'anoisesrc=color=white:amplitude=0.05 [noise]; [0][noise] amix', output_filename
+    ]
+    subprocess.run(command)
+
+    await ctx.send(file=discord.File(output_filename))
+
+    os.remove(attachment.filename)
+    os.remove(output_filename)
+
+@bot.command()
+async def freqfilter(ctx, filter_type: str): # Low-pass or high-pass filter
+    if not ctx.message.attachments:
+        await ctx.send("Please attach an audio file.")
+        return
+
+    attachment = ctx.message.attachments[0]
+    if not attachment.filename.endswith(('.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg')):
+        await ctx.send("Please attach a valid audio file.")
+        return
+
+    await attachment.save(attachment.filename)
+
+    duration = get_audio_duration(attachment.filename)
+    if duration > 180:
+        await ctx.send("The audio file is longer than 180 seconds and cannot be processed.")
+        os.remove(attachment.filename)
+        return
+
+    if filter_type.lower() not in ['low-pass', 'high-pass']:
+        await ctx.send("Please specify a valid filter type: 'low-pass' or 'high-pass'.")
+        os.remove(attachment.filename)
+        return
+
+    output_filename = f"filtered_{attachment.filename}"
+    filter_option = 'lowpass=f=3000' if filter_type.lower() == 'low-pass' else 'highpass=f=3000'
+    command = [
+        'ffmpeg', '-i', attachment.filename, '-filter:a', filter_option, output_filename
     ]
     subprocess.run(command)
 
